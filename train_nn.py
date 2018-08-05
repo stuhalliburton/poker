@@ -45,13 +45,11 @@ def format_dataset(data):
 class NeuralNetwork:
     MODEL_SAVE_PATH = './saved_models/model.h5'
 
-    def __init__(self, feature_count=25, num_classes=10, epochs=1000,
-            batch_size=50, validation_split=0.):
+    def __init__(self, feature_count=25, num_classes=10):
         self.feature_count = feature_count
         self.num_classes = num_classes
         self.epochs = epochs
         self.batch_size = batch_size
-        self.validation_split = validation_split
         self.model = self._build()
 
     def _build(self):
@@ -63,10 +61,11 @@ class NeuralNetwork:
         model.compile(loss="categorical_crossentropy", optimizer="adam", metrics=["accuracy"])
         return model
 
-    def train(self, x_train, y_train):
+    def train(self, x_train, y_train, batch_size=32, epochs=100,
+            validation_data=None):
         self.model.fit(x_train, y_train, epochs=self.epochs,
                 batch_size=self.batch_size,
-                validation_split=self.validation_split)
+                validation_data=validation_data)
 
     def evaluate(self, x_test, y_test):
         return self.model.evaluate(x_test, y_test)
@@ -81,11 +80,12 @@ class NeuralNetwork:
 if __name__ == '__main__':
     data_file = 'data/poker.data'
     label_name = 'hand'
+    feature_count = 25
     num_classes = 10
-    test_ratio = 0.01
-    validation_split = 0.05
+    test_ratio = 0.1
     random_seed = None
     epochs = 1000
+    batch_size = 50
 
     # load CSV and format
     dataset = pd.read_csv(data_file)
@@ -101,11 +101,11 @@ if __name__ == '__main__':
     # split training from test data
     x_train, x_test, y_train, y_test = train_test_split(features, labels, test_size=test_ratio, random_state=random_seed)
 
-    network = NeuralNetwork(epochs=epochs, num_classes=num_classes,
-            validation_split=validation_split)
+    network = NeuralNetwork(feature_count=feature_count, num_classes=num_classes)
 
     # train network on data
-    network.train(x_train, y_train)
+    network.train(x_train, y_train, batch_size=batch_size, epochs=epochs,
+            validation_data=[x_test, y_test])
 
     # evaluate performace on test data
     scores = network.evaluate(x_test, y_test)
