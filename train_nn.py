@@ -166,9 +166,10 @@ if __name__ == '__main__':
     num_classes = 10
     test_ratio = 0.1
     validation_split = 0.1
+    epochs = 150
+    batch_size = 32
     random_seed = None
-    epochs = 200
-    batch_size = 50
+    np.random.seed(random_seed)
 
     # load CSV and format
     dataset = pd.read_csv(data_file)
