@@ -145,11 +145,10 @@ class NeuralNetwork:
         model.compile(loss="categorical_crossentropy", optimizer="adam", metrics=["accuracy"])
         return model
 
-    def train(self, x_train, y_train, batch_size=32, epochs=100,
-            validation_data=None):
+    def train(self, x_train, y_train, batch_size=32, epochs=100, validation_split=0.):
         self.model.fit(x_train, y_train, epochs=self.epochs,
                 batch_size=self.batch_size,
-                validation_data=validation_data)
+                validation_split=validation_split)
 
     def evaluate(self, x_test, y_test):
         return self.model.evaluate(x_test, y_test)
@@ -166,6 +165,7 @@ if __name__ == '__main__':
     label_name = 'hand'
     num_classes = 10
     test_ratio = 0.1
+    validation_split = 0.1
     random_seed = None
     epochs = 200
     batch_size = 50
@@ -188,7 +188,7 @@ if __name__ == '__main__':
 
     # train network on data
     network.train(x_train, y_train, batch_size=batch_size, epochs=epochs,
-            validation_data=[x_test, y_test])
+            validation_split=validation_split)
 
     # evaluate performace on test data
     scores = network.evaluate(x_test, y_test)
