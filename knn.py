@@ -5,81 +5,107 @@ from keras.utils import to_categorical
 from sklearn import neighbors
 from sklearn.model_selection import train_test_split
 
-data_file = 'data/poker.data'
+training_data_file = 'data/poker.data'
+test_data_file = 'data/poker-test.data'
 label_name = 'hand'
 num_classes = 10
-test_ratio = 0.1
-random_seed = 2
 
 def format_dataset(data):
-    heart_lambda   = lambda x: 1 if x == 1 else 0
-    spade_lambda   = lambda x: 1 if x == 2 else 0
-    diamond_lambda = lambda x: 1 if x == 3 else 0
-    club_lambda    = lambda x: 1 if x == 4 else 0
+    for card in range(1, 6, 1):
+        for value in range(1, 14, 1):
+            card_header = 'c{}_{}'.format(card, value)
+            card_number = 'c{}'.format(card)
+            card_lambda = lambda x: 1 if x == value else 0
+            data[card_header] = data[card_number].apply(card_lambda)
 
-    data['s1_h'] = data['s1'].apply(heart_lambda)
-    data['s1_s'] = data['s1'].apply(spade_lambda)
-    data['s1_d'] = data['s1'].apply(diamond_lambda)
-    data['s1_c'] = data['s1'].apply(club_lambda)
+        for suit in ['h', 's', 'd', 'c']:
+            suit_header = 's{}_{}'.format(card, suit)
+            suit_number = 's{}'.format(card)
+            suit_lambda = lambda x: 1 if x == suit else 0
+            data[suit_header] = data[suit_number].apply(suit_lambda)
 
-    data['s2_h'] = data['s2'].apply(heart_lambda)
-    data['s2_s'] = data['s2'].apply(spade_lambda)
-    data['s2_d'] = data['s2'].apply(diamond_lambda)
-    data['s2_c'] = data['s2'].apply(club_lambda)
+    return data.drop(['c1', 'c2', 'c3', 'c4', 'c5', 's1', 's2', 's3', 's4' ,'s5'], 1)
 
-    data['s3_h'] = data['s3'].apply(heart_lambda)
-    data['s3_s'] = data['s3'].apply(spade_lambda)
-    data['s3_d'] = data['s3'].apply(diamond_lambda)
-    data['s3_c'] = data['s3'].apply(club_lambda)
+# load training data and format
+print 'loading training data...'
+training_data = pd.read_csv(training_data_file)
+training_data = format_dataset(training_data)
+x_train = training_data.drop([label_name], 1)
+y_train = training_data[label_name]
+y_train = to_categorical(y_train, num_classes)
+print 'done.'
 
-    data['s4_h'] = data['s4'].apply(heart_lambda)
-    data['s4_s'] = data['s4'].apply(spade_lambda)
-    data['s4_d'] = data['s4'].apply(diamond_lambda)
-    data['s4_c'] = data['s4'].apply(club_lambda)
+# load test/validation data and format
+print 'loading test/validation data...'
+test_data = pd.read_csv(test_data_file)
+test_data = format_dataset(test_data)
+x_test = test_data.drop([label_name], 1)
+y_test = test_data[label_name]
+y_test = to_categorical(y_test, num_classes)
+print 'done.'
 
-    data['s5_h'] = data['s5'].apply(heart_lambda)
-    data['s5_s'] = data['s5'].apply(spade_lambda)
-    data['s5_d'] = data['s5'].apply(diamond_lambda)
-    data['s5_c'] = data['s5'].apply(club_lambda)
-
-    return data.drop(['s1', 's2', 's3', 's4' ,'s5'], 1)
-
-
-# load CSV and format
-dataset = pd.read_csv(data_file)
-dataset = format_dataset(dataset)
-
-# split features & labels
-features = dataset.drop([label_name], 1)
-labels = dataset[label_name]
-
-# categorise labels
-labels = to_categorical(labels, num_classes)
-
-# split training from test data & randomise
-x_train, x_test, y_train, y_test = train_test_split(features, labels, test_size=test_ratio, random_state=random_seed)
-
-knn = neighbors.KNeighborsClassifier(n_neighbors=5, p=1)
+# define and train classifier
+print 'training classifier...'
+knn = neighbors.KNeighborsClassifier(n_neighbors=3, p=2)
 knn.fit(x_train, y_train)
+print 'done.'
 
-accuracy = knn.score(x_test, y_test)
+# evaluate classifier
+print 'evaluating classifier...'
+accuracy = knn.score(x_test[:2000], y_test[:2000])
 print 'Accuracy: {}'.format(accuracy)
+print 'done.'
 
 
-# create test dataframe - 7 : four of a kind
-four_of_a_kind = pd.DataFrame()
-four_of_a_kind['s1'] = [1]
-four_of_a_kind['c1'] = [7]
-four_of_a_kind['s2'] = [2]
-four_of_a_kind['c2'] = [7]
-four_of_a_kind['s3'] = [3]
-four_of_a_kind['c3'] = [7]
-four_of_a_kind['s4'] = [4]
-four_of_a_kind['c4'] = [7]
-four_of_a_kind['s5'] = [1]
-four_of_a_kind['c5'] = [12]
-four_of_a_kind = format_dataset(four_of_a_kind)
+# load hands from test data
+find_test_hand = lambda x: test_data.loc[test_data[label_name] == x][:1].drop([label_name], 1)
+nothing = find_test_hand(0)
+one_pair = find_test_hand(1)
+two_pairs = find_test_hand(2)
+three_of_a_kind = find_test_hand(3)
+straight = find_test_hand(4)
+flush = find_test_hand(5)
+full_house = find_test_hand(6)
+four_of_a_kind = find_test_hand(7)
+straight_flush = find_test_hand(8)
+royal_flush = find_test_hand(9)
+
+# predict nothing
+prediction = knn.predict(nothing)
+print 'Nothing - 0 : Prediction: {}'.format(prediction)
+
+# predict one pair
+prediction = knn.predict(one_pair)
+print 'One Pair - 1 : Prediction: {}'.format(prediction)
+
+# predict two pairs
+prediction = knn.predict(two_pairs)
+print 'Two Pairs- 2 : Prediction: {}'.format(prediction)
+
+# predict three of a kind
+prediction = knn.predict(three_of_a_kind)
+print 'Three of a Kind - 3 : Prediction: {}'.format(prediction)
+
+# predict straight
+prediction = knn.predict(straight)
+print 'Straight - 4 : Prediction: {}'.format(prediction)
+
+# predict flush
+prediction = knn.predict(flush)
+print 'Flush - 5 : Prediction: {}'.format(prediction)
+
+# predict full house
+prediction = knn.predict(full_house)
+print 'Full House - 6 : Prediction: {}'.format(prediction)
 
 # predict four of a kind
 prediction = knn.predict(four_of_a_kind)
-print 'Prediction: {}'.format(prediction)
+print 'Four of a Kind - 7 : Prediction: {}'.format(prediction)
+
+# predict straight flush
+prediction = knn.predict(straight_flush)
+print 'Straight Flush - 8 : Prediction: {}'.format(prediction)
+
+# predict royal flush
+prediction = knn.predict(royal_flush)
+print 'Royal Flush - 9 : Prediction: {}'.format(prediction)
