@@ -18,10 +18,10 @@ def format_dataset(data):
             card_lambda = lambda x: 1 if x == value else 0
             data[card_header] = data[card_number].apply(card_lambda)
 
-        for suit in ['h', 's', 'd', 'c']:
+        for index, suit in enumerate(['h', 's', 'd', 'c']):
             suit_header = 's{}_{}'.format(card, suit)
             suit_number = 's{}'.format(card)
-            suit_lambda = lambda x: 1 if x == suit else 0
+            suit_lambda = lambda x: 1 if x == index+1 else 0
             data[suit_header] = data[suit_number].apply(suit_lambda)
 
     return data.drop(['c1', 'c2', 'c3', 'c4', 'c5', 's1', 's2', 's3', 's4' ,'s5'], 1)
