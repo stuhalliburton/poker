@@ -9,6 +9,7 @@ from sklearn.model_selection import train_test_split
 
 from keras.models import Sequential
 from keras.layers import Dense
+from keras.layers import Conv1D, MaxPooling1D, Flatten
 
 def format_dataset(data):
     for card in range(1, 6, 1):
@@ -26,11 +27,13 @@ def format_dataset(data):
 
     return data.drop(['c1', 'c2', 'c3', 'c4', 'c5', 's1', 's2', 's3', 's4' ,'s5'], 1)
 
+def reshape_for_convolutional(data):
+    return np.array(data).reshape(data.shape[0], data.shape[1], 1)
+
 class NeuralNetwork:
     MODEL_SAVE_PATH = './saved_models/model.h5'
 
-    def __init__(self, feature_count=85, num_classes=10):
-        self.feature_count = feature_count
+    def __init__(self, num_classes=10):
         self.num_classes = num_classes
         self.epochs = epochs
         self.batch_size = batch_size
@@ -38,10 +41,15 @@ class NeuralNetwork:
 
     def _build(self):
         model = Sequential()
-        model.add(Dense(24, input_dim=self.feature_count, activation="relu"))
+        model.add(Conv1D(5000, 17, strides=17, input_shape=(85, 1), activation='relu'))
+        model.add(MaxPooling1D(pool_size=5, strides=1))
+        model.add(Flatten())
+        model.add(Dense(24, activation="relu"))
         model.add(Dense(16, activation="relu"))
         model.add(Dense(12, activation="relu"))
-        model.add(Dense(num_classes, activation="softmax"))
+        model.add(Dense(self.num_classes, activation="softmax"))
+
+        # compile network
         model.compile(loss="categorical_crossentropy", optimizer="adam", metrics=["accuracy"])
         return model
 
@@ -71,22 +79,24 @@ if __name__ == '__main__':
     label_name = 'hand'
     num_classes = 10
     validation_split = 0.01
-    epochs = 150
+    epochs = 100
     batch_size = 32
     random_seed = None
     np.random.seed(random_seed)
 
     # load training data and format
-    training_data = pd.read_csv(training_data_file)
+    training_data = pd.read_csv(training_data_file).sample(frac=1)
     training_data = format_dataset(training_data)
     x_train = training_data.drop([label_name], 1)
+    x_train = reshape_for_convolutional(x_train)
     y_train = training_data[label_name]
     y_train = to_categorical(y_train, num_classes)
 
     # load test/validation data and format
-    test_data = pd.read_csv(test_data_file)
+    test_data = pd.read_csv(test_data_file).sample(frac=1)
     test_data = format_dataset(test_data)
     test_features = test_data.drop([label_name], 1)
+    test_features = reshape_for_convolutional(test_features)
     test_labels = test_data[label_name]
     test_labels = to_categorical(test_labels, num_classes)
     x_test, x_validation, y_test, y_validation = train_test_split(test_features,
@@ -106,8 +116,13 @@ if __name__ == '__main__':
     # save model weights
     network.save()
 
+    def find_test_hand(label):
+        row = test_data.loc[test_data[label_name] == label][:1]
+        row = row.drop([label_name], 1)
+        row = reshape_for_convolutional(row)
+        return row
+
     # load hands from test data
-    find_test_hand = lambda x: test_data.loc[test_data[label_name] == x][:1].drop([label_name], 1)
     nothing = find_test_hand(0)
     one_pair = find_test_hand(1)
     two_pairs = find_test_hand(2)
