@@ -9,7 +9,7 @@ from sklearn.model_selection import train_test_split
 
 from keras.models import Sequential
 from keras.layers import Dense
-from keras.layers import Conv1D, MaxPooling1D, Flatten
+from keras.layers import Conv2D, Flatten
 
 def format_dataset(data):
     for card in range(1, 6, 1):
@@ -28,7 +28,7 @@ def format_dataset(data):
     return data.drop(['c1', 'c2', 'c3', 'c4', 'c5', 's1', 's2', 's3', 's4' ,'s5'], 1)
 
 def reshape_for_convolutional(data):
-    return np.array(data).reshape(data.shape[0], data.shape[1], 1)
+    return np.array(data).reshape(data.shape[0], 5, 17, 1)
 
 class NeuralNetwork:
     MODEL_SAVE_PATH = './saved_models/model.h5'
@@ -41,12 +41,12 @@ class NeuralNetwork:
 
     def _build(self):
         model = Sequential()
-        model.add(Conv1D(5000, 17, strides=17, input_shape=(85, 1), activation='relu'))
-        model.add(MaxPooling1D(pool_size=5, strides=1))
+        model.add(Conv2D(64, (5, 1), strides=1, input_shape=(5, 17, 1), activation='relu'))
+        model.add(Conv2D(64, (1, 2), strides=1, activation='relu'))
         model.add(Flatten())
-        model.add(Dense(24, activation="relu"))
-        model.add(Dense(16, activation="relu"))
-        model.add(Dense(12, activation="relu"))
+        model.add(Dense(512, activation="relu"))
+        model.add(Dense(256, activation="relu"))
+        model.add(Dense(128, activation="relu"))
         model.add(Dense(self.num_classes, activation="softmax"))
 
         # compile network
@@ -79,7 +79,7 @@ if __name__ == '__main__':
     label_name = 'hand'
     num_classes = 10
     validation_split = 0.01
-    epochs = 100
+    epochs = 15
     batch_size = 32
     random_seed = None
     np.random.seed(random_seed)
